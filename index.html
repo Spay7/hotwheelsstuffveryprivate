@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hot Wheels Catalog</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        header {
+            background-color: #0078d7;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .car {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .car img {
+            width: 150px;
+            height: auto;
+            border-radius: 8px;
+            margin-right: 1rem;
+        }
+        .car-details {
+            flex: 1;
+        }
+        .car-tags {
+            margin-top: 0.5rem;
+            color: #666;
+        }
+        .car button {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: #0078d7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .car button:hover {
+            background-color: #0053a6;
+        }
+        .car .delete-car {
+            background-color: #ff4d4d;
+        }
+        .car .delete-car:hover {
+            background-color: #ff1a1a;
+        }
+        .add-car {
+            margin-top: 2rem;
+        }
+        .add-car input, .add-car button {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        .search-bar {
+            margin-bottom: 2rem;
+        }
+        .search-bar input {
+            padding: 0.5rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        #image-preview {
+            max-width: 150px;
+            max-height: auto;
+            margin-top: 1rem;
+            display: none;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Hot Wheels Catalog</h1>
+    </header>
+
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Search cars by name, year, series, or tags...">
+        </div>
+
+        <div id="car-list">
+            <!-- Car entries will be dynamically loaded here -->
+        </div>
+
+        <div class="add-car">
+            <h2>Add New Car</h2>
+            <form id="add-car-form">
+                <input type="text" id="car-name" placeholder="Car Name" required><br>
+                <input type="text" id="car-year" placeholder="Year" required><br>
+                <input type="text" id="car-series" placeholder="Series" required><br>
+                <input type="text" id="car-tags" placeholder="Tags (comma-separated)" required><br>
+                <input type="url" id="car-image" placeholder="Image URL" required><br>
+                <img id="image-preview" alt="Image Preview">
+                <button type="submit">Add Car</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const carList = document.getElementById('car-list');
+        const addCarForm = document.getElementById('add-car-form');
+        const searchInput = document.getElementById('search-input');
+        const imageInput = document.getElementById('car-image');
+        const imagePreview = document.getElementById('image-preview');
+
+        // Load cars from local storage
+        function loadCars() {
+            const cars = JSON.parse(localStorage.getItem('hotwheelsCars')) || [];
+            cars.forEach(car => addCarToDOM(car));
+        }
+
+        // Save cars to local storage
+        function saveCars(cars) {
+            localStorage.setItem('hotwheelsCars', JSON.stringify(cars));
+        }
+
+        // Add car to DOM
+        function addCarToDOM(car) {
+            const carDiv = document.createElement('div');
+            carDiv.classList.add('car');
+            carDiv.dataset.name = car.name;
+
+            carDiv.innerHTML = `
+                <img src="${car.image}" alt="${car.name}" onerror="this.src='https://via.placeholder.com/150';">
+                <div class="car-details">
+                    <h2>${car.name}</h2>
+                    <p>Year: ${car.year} | Series: ${car.series}</p>
+                    <p class="car-tags">Tags: ${car.tags}</p>
+                    <button class="edit-car">Edit</button>
+                    <button class="delete-car">Delete</button>
+                </div>
+            `;
+
+            const editButton = carDiv.querySelector('.edit-car');
+            editButton.addEventListener('click', () => editCar(car));
+
+            const deleteButton = carDiv.querySelector('.delete-car');
+            deleteButton.addEventListener('click', () => deleteCar(car.name, carDiv));
+
+            carList.appendChild(carDiv);
+        }
+
+        // Delete car
+        function deleteCar(name, carElement) {
+            let cars = JSON.parse(localStorage.getItem('hotwheelsCars')) || [];
+            cars = cars.filter(car => car.name !== name);
+            saveCars(cars);
+            carElement.remove();
+        }
+
+        // Edit car
+        function editCar(car) {
+            const cars = JSON.parse(localStorage.getItem('hotwheelsCars')) || [];
+            const carIndex = cars.findIndex(c => c.name === car.name);
+            if (carIndex > -1) {
+                // Pre-fill form with current data
+                document.getElementById('car-name').value = cars[carIndex].name;
+                document.getElementById('car-year').value = cars[carIndex].year;
+                document.getElementById('car-series').value = cars[carIndex].series;
+                document.getElementById('car-tags').value = cars[carIndex].tags;
+                document.getElementById('car-image').value = cars[carIndex].image;
+
+                // Remove old entry
+                deleteCar(cars[carIndex].name, document.querySelector(`.car[data-name='${cars[carIndex].name}']`));
+            }
+        }
+
+        // Handle form submission
+        addCarForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Get form values
+            const car = {
+                name: document.getElementById('car-name').value,
+                year: document.getElementById('car-year').value,
+                series: document.getElementById('car-series').value,
+                tags: document.getElementById('car-tags').value,
+                image: document.getElementById('car-image').value
+            };
+
+            // Add car to DOM
+            addCarToDOM(car);
+
+            // Save car to local storage
+            const cars = JSON.parse(localStorage.getItem('hotwheelsCars')) || [];
+            cars.push(car);
+            saveCars(cars);
+
+            // Reset form
+            addCarForm.reset();
+            imagePreview.style.display = 'none';
+        });
+
+        // Handle image preview
+        imageInput.addEventListener('input', function() {
+            const url = imageInput.value;
+            if (url) {
+                imagePreview.src = url;
+                imagePreview.style.display = 'block';
+            } else {
+                imagePreview.style.display = 'none';
+            }
+        });
+
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const filter = searchInput.value.toLowerCase();
+            const cars = document.querySelectorAll('.car');
+
+            cars.forEach(car => {
+                const text = car.innerText.toLowerCase();
+                if (text.includes(filter)) {
+                    car.style.display = '';
+                } else {
+                    car.style.display = 'none';
+                }
+            });
+        });
+
+        // Initialize
+        loadCars();
+    </script>
+</body>
+</html>
